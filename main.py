@@ -3,6 +3,25 @@ from discord import app_commands
 from discord.ext import commands
 import asyncio
 import os
+import http.server
+import threading
+
+# --- MINI SERVIDOR WEB NATIVO (Sem Flask para não travar) ---
+class WebServer(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(b"Bot Online!")
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = http.server.HTTPServer(('0.0.0.0', port), WebServer)
+    server.serve_forever()
+
+# Inicia o servidor web em segundo plano imediatamente
+threading.Thread(target=run_web_server, daemon=True).start()
+# ------------------------------------------------------------
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -106,7 +125,7 @@ async def config_perfil(interaction: discord.Interaction, nome: str = None, bio:
     await interaction.response.defer(ephemeral=True)
     if nome: CONFIG_BOT["nome"] = nome
     if bio: CONFIG_BOT["bio"] = bio
-    await interaction.followup.send("✅ Identidade visual actualizada!", ephemeral=True)
+    await interaction.followup.send("✅ Identidade visual atualizada!", ephemeral=True)
 
 @bot.tree.command(name="add_produto", description="Cadastre um novo produto.")
 @app_commands.checks.has_permissions(administrator=True)
@@ -121,4 +140,4 @@ if __name__ == "__main__":
         print("🤖 Iniciando conexão com o Discord...")
         bot.run(TOKEN)
     else:
-        print("❌ ERRO: Chave 'DISCORD_TOKEN' não configurada nas variáveis de ambiente.")
+        print("❌ Chave 'DISCORD_TOKEN' ausente.")
