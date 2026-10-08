@@ -203,12 +203,15 @@ async def add_produto(interaction: discord.Interaction, id_produto: str, nome: s
 
 # --- INICIALIZAÇÃO SEGURA DO BOT ---
 if __name__ == "__main__":
-    keep_alive()  # Liga o mini servidor web para o Render
-    
-    # Puxa o Token das configurações do Render de forma 100% oculta e segura
+    # Puxa o Token das configurações do Render primeiro
     TOKEN = os.getenv("DISCORD_TOKEN")
     
-    if TOKEN:
-        bot.run(TOKEN)
-    else:
+    if not TOKEN:
         print("❌ ERRO: A variável de ambiente 'DISCORD_TOKEN' não foi encontrada!")
+    else:
+        # 1. Liga o servidor web em segundo plano através da Thread primeiro
+        keep_alive()  
+        
+        # 2. Agora liga o bot do Discord por último para ele não travar
+        print("🤖 Iniciando conexão com o Discord...")
+        bot.run(TOKEN)
