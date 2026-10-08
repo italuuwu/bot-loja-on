@@ -66,11 +66,11 @@ class DropdownProdutos(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 
-        if self.values[0] == "Nenhum produto cadastrado":
+        if self.values == "Nenhum produto cadastrado":
             await interaction.followup.send("❌ Nenhum produto disponível no momento.", ephemeral=True)
             return
 
-        prod_id = self.values[0]
+        prod_id = self.values
         produto = PRODUTOS.get(prod_id)
 
         if not produto:
@@ -115,7 +115,6 @@ class DropdownProdutos(discord.ui.Select):
         view_ticket = BotoesTicket(prod_id, interaction.user.id)
         await canal_ticket.send(embed=embed_ticket, view=view_ticket)
         
-        # Correção sutil: Se por acaso o bot não achar o ID do dono, evita dar erro
         owner_mention = f"<@&{guild.owner_id}>" if guild.owner_id else "@here"
         await canal_ticket.send(f"🔔 {owner_mention} Um novo cliente abriu um carrinho! Aguardando comprovante.")
 
@@ -185,7 +184,7 @@ async def config_perfil(interaction: discord.Interaction, nome: str = None, bio:
     if bio: CONFIG_BOT["bio"] = bio
     if avatar_url: CONFIG_BOT["avatar"] = avatar_url
     if banner_url: CONFIG_BOT["banner"] = banner_url
-    await interaction.followup.send("✅ Configurações de identidade visual updated!", ephemeral=True)
+    await interaction.followup.send("✅ Configurações de identidade visual atualizadas!", ephemeral=True)
 
 @bot.tree.command(name="add_produto", description="Cadastre um novo produto na sua loja virtual.")
 @app_commands.checks.has_permissions(administrator=True)
@@ -197,21 +196,16 @@ async def add_produto(interaction: discord.Interaction, id_produto: str, nome: s
         "descricao": descricao,
         "estoque": estoque
     }
-    # --- FINALIZAÇÃO DO COMANDO QUE ESTAVA CORTADO ---
     await interaction.followup.send(f"✅ Produto **{nome}** (ID: `{id_produto}`) cadastrado com sucesso!", ephemeral=True)
 
 
 # --- INICIALIZAÇÃO SEGURA DO BOT ---
 if __name__ == "__main__":
-    # Puxa o Token das configurações do Render primeiro
     TOKEN = os.getenv("DISCORD_TOKEN")
     
     if not TOKEN:
         print("❌ ERRO: A variável de ambiente 'DISCORD_TOKEN' não foi encontrada!")
     else:
-        # 1. Liga o servidor web em segundo plano através da Thread primeiro
         keep_alive()  
-        
-        # 2. Agora liga o bot do Discord por último para ele não travar
         print("🤖 Iniciando conexão com o Discord...")
         bot.run(TOKEN)
