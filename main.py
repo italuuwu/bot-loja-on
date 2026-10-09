@@ -36,11 +36,12 @@ class VendasBot(commands.Bot):
 
 bot = VendasBot()
 
+# --- CONFIGURAÇÃO PREDEFINIDA DA SUA LOJA ---
 CONFIG_BOT = {
-    "nome": "Loja Virtual",
+    "nome": "LOJA VIRTUAL",
     "bio": "A melhor loja de produtos digitais do Discord! Compre com total segurança de forma manual.",
-    "avatar": "https://imgur.com",
-    "banner": "https://imgur.com"
+    "avatar": "https://imgur.com",  # Substitua pelo link do logo da sua loja
+    "banner": "https://imgur.com"   # Substitua pelo link do banner da sua loja
 }
 
 PRODUTOS = {}
@@ -59,7 +60,7 @@ class DropdownProdutos(discord.ui.Select):
                     emoji="📦"
                 ))
 
-        super().__init__(placeholder="Selecione um produto para comprar...", min_values=1, max_values=1, options=options)
+        super().__init__(placeholder="Selecione o produto desejado...", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
@@ -92,9 +93,9 @@ class DropdownProdutos(discord.ui.Select):
             description=f"Olá {interaction.user.mention},\n\n"
                         f"Você escolheu o produto **{produto['nome']}**.\n"
                         f"**Valor:** `R$ {produto['preco']:.2f}`\n\n"
-                        f"⚠️ **PAGAMENTO MANUAL** ⚠️\n"
+                        f"➡️ **PAGAMENTO MANUAL**\n"
                         f"Por favor, envie o **comprovante de pagamento** neste chat.\n"
-                        f"Um administrador irá validar o seu pagamento e liberar o produto.",
+                        f"Um administrador irá validar o seu pagamento e liberar o seu produto.",
             color=discord.Color.gold()
         )
         await canal_ticket.send(embed=embed_ticket, view=BotoesTicket(prod_id, interaction.user.id))
@@ -130,31 +131,48 @@ class BotoesTicket(discord.ui.View):
         await asyncio.sleep(5)
         await interaction.channel.delete()
 
-# --- NOVO COMANDO PARA ENVIAR O PAINEL DE VENDAS ---
-@bot.tree.command(name="enviar_painel", description="Envia o painel de compras da loja no canal atual.")
+# --- COMANDO DO PAINEL PREMIUM ---
+@bot.tree.command(name="enviar_painel", description="Envia o painel de compras premium da loja.")
 @app_commands.checks.has_permissions(administrator=True)
 async def enviar_painel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     
+    # Criando o formato Premium com cabeçalhos organizados
     embed_loja = discord.Embed(
         title=f"🏪 {CONFIG_BOT['nome']}",
-        description=CONFIG_BOT['bio'],
-        color=discord.Color.blue()
+        description=f"> {CONFIG_BOT['bio']}\n\n"
+                    f"**✨ Por que comprar conosco?**\n"
+                    f"💳 ・ Pagamento facilitado via Pix\n"
+                    f"⚡ ・ Entrega manual rápida e garantida\n"
+                    f"🔒 ・ Ambiente 100% seguro por ticket\n\n"
+                    f"👇 *Selecione o produto abaixo para abrir seu carrinho:*",
+        color=discord.Color.from_rgb(88, 101, 242) # Azul Blurple Oficial do Discord
     )
-    if CONFIG_BOT['avatar'] and CONFIG_BOT['avatar'] != "https://imgur.com":
+    
+    # Configurando o ícone menor redondo se houver link válido
+    if CONFIG_BOT['avatar'] and "http" in CONFIG_BOT['avatar']:
         embed_loja.set_thumbnail(url=CONFIG_BOT['avatar'])
+    
+    # Configurando a imagem de banner grande se houver link válido
+    if CONFIG_BOT['banner'] and "http" in CONFIG_BOT['banner']:
+        embed_loja.set_image(url=CONFIG_BOT['banner'])
+        
+    embed_loja.set_footer(text="Atendimento Manual • Todos os direitos reservados", icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
     
     view = PainelVendasView()
     await interaction.channel.send(embed=embed_loja, view=view)
-    await interaction.followup.send("✅ Painel de vendas enviado com sucesso!", ephemeral=True)
+    await interaction.followup.send("✅ Painel premium enviado com sucesso!", ephemeral=True)
 
-@bot.tree.command(name="config_perfil", description="Personalize o nome e bio exibidos nos painéis.")
+# --- COMANDO PARA CONFIGURAR AS IMAGENS DO BANNER E PERFIL ---
+@bot.tree.command(name="config_perfil", description="Personalize a identidade da loja incluindo os links do banner e avatar.")
 @app_commands.checks.has_permissions(administrator=True)
-async def config_perfil(interaction: discord.Interaction, nome: str = None, bio: str = None):
+async def config_perfil(interaction: discord.Interaction, nome: str = None, bio: str = None, avatar_url: str = None, banner_url: str = None):
     await interaction.response.defer(ephemeral=True)
-    if nome: CONFIG_BOT["nome"] = nome
+    if nome: CONFIG_BOT["nome"] = nome.upper()
     if bio: CONFIG_BOT["bio"] = bio
-    await interaction.followup.send("✅ Configurações de identidade visual atualizadas!", ephemeral=True)
+    if avatar_url: CONFIG_BOT["avatar"] = avatar_url
+    if banner_url: CONFIG_BOT["banner"] = banner_url
+    await interaction.followup.send("✅ Configurações de identidade visual premium atualizadas!", ephemeral=True)
 
 @bot.tree.command(name="add_produto", description="Cadastre um novo produto na sua loja virtual.")
 @app_commands.checks.has_permissions(administrator=True)
