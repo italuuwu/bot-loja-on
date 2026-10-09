@@ -7,6 +7,7 @@ import http.server
 import threading
 
 # --- MINI SERVIDOR WEB NATIVO ---
+# Necessário para o Render aceitar o bot no plano gratuito sem desligar por falta de porta web
 class WebServer(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -19,6 +20,7 @@ def run_web_server():
     server = http.server.HTTPServer(('0.0.0.0', port), WebServer)
     server.serve_forever()
 
+# Inicia o servidor web em segundo plano imediatamente
 threading.Thread(target=run_web_server, daemon=True).start()
 # ------------------------------------------------------------
 
@@ -31,8 +33,9 @@ class VendasBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
         
     async def setup_hook(self):
+        # Limpa o cache antigo e força a sincronização global de todos os comandos de barra
         await self.tree.sync()
-        print("🔄 Comandos de barra sincronizados com sucesso!")
+        print("🔄 Comandos de barra sincronizados com sucesso globalmente!")
 
 bot = VendasBot()
 
@@ -137,7 +140,6 @@ class BotoesTicket(discord.ui.View):
 async def enviar_painel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     
-    # Criando o formato Premium com cabeçalhos organizados
     embed_loja = discord.Embed(
         title=f"🏪 {CONFIG_BOT['nome']}",
         description=f"> {CONFIG_BOT['bio']}\n\n"
@@ -146,14 +148,14 @@ async def enviar_painel(interaction: discord.Interaction):
                     f"⚡ ・ Entrega manual rápida e garantida\n"
                     f"🔒 ・ Ambiente 100% seguro por ticket\n\n"
                     f"👇 *Selecione o produto abaixo para abrir seu carrinho:*",
-        color=discord.Color.from_rgb(88, 101, 242) # Azul Blurple Oficial do Discord
+        color=discord.Color.from_rgb(88, 101, 242) # Cor oficial Blurple do Discord
     )
     
-    # Configurando o ícone menor redondo se houver link válido
+    # Adiciona a imagem pequena (Logo) no canto superior direito
     if CONFIG_BOT['avatar'] and "http" in CONFIG_BOT['avatar']:
         embed_loja.set_thumbnail(url=CONFIG_BOT['avatar'])
     
-    # Configurando a imagem de banner grande se houver link válido
+    # Adiciona o banner grande centralizado embaixo do texto
     if CONFIG_BOT['banner'] and "http" in CONFIG_BOT['banner']:
         embed_loja.set_image(url=CONFIG_BOT['banner'])
         
@@ -174,6 +176,7 @@ async def config_perfil(interaction: discord.Interaction, nome: str = None, bio:
     if banner_url: CONFIG_BOT["banner"] = banner_url
     await interaction.followup.send("✅ Configurações de identidade visual premium atualizadas!", ephemeral=True)
 
+# --- COMANDO PARA ADICIONAR PRODUTOS ---
 @bot.tree.command(name="add_produto", description="Cadastre um novo produto na sua loja virtual.")
 @app_commands.checks.has_permissions(administrator=True)
 async def add_produto(interaction: discord.Interaction, id_produto: str, nome: str, preco: float, descricao: str, estoque: int):
@@ -181,10 +184,11 @@ async def add_produto(interaction: discord.Interaction, id_produto: str, nome: s
     PRODUTOS[id_produto] = {"nome": nome, "preco": preco, "descricao": descricao, "estoque": estoque}
     await interaction.followup.send(f"✅ Produto **{nome}** (ID: `{id_produto}`) cadastrado com sucesso!", ephemeral=True)
 
+# --- INICIALIZAÇÃO SEGURA DO BOT ---
 if __name__ == "__main__":
     TOKEN = os.getenv("DISCORD_TOKEN")
     if TOKEN:
         print("🤖 Iniciando conexão com o Discord...")
         bot.run(TOKEN)
     else:
-        print("❌ Chave 'DISCORD_TOKEN' ausente.")
+        print("❌ Chave 'DISCORD_TOKEN' ausente nas variáveis de ambiente do Render.")
